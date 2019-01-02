@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Census Viewer</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+    <h1>Census Viewer</h1>
+    <svg class="chart"></svg>
+
+    <script>
+    const margins = {top:10, bottom:50, left:80, right:10};
+    const width = 400;
+    const height = 300;
+
+    const url = 'http://www.cs.middlebury.edu/~cbintz/infovis/hw5_part2/census.csv'
+
+    const svg = d3.select(".chart")
+        .attr("width", width + margins.right + margins.left)
+        .attr("height", height + margins.top + margins.bottom);
+
+    const chart = svg.append("g")
+        .attr("transform", `translate(${margins.left}, ${margins.top})`);
+
+    d3.csv(url).then((data)=>{
+    console.log(data);
+
+    const y_scale = d3.scaleLinear()
+         .range([height,0])
+         .domain([0, d3.max(data, (d)=>+d.incomeHousehold)]);
+
+    const x_scale = d3.scaleLinear()
+         .range([0,width])
+         .domain([0, d3.max(data, (d)=>+d.perCollege)]);
+
+    const color_scale = d3.scaleLinear()
+         .range(["#9ebcda", "#8856a7", "#9ebcda"])
+         .domain([0, d3.max(data, (d)=>+d.popPerSqMile)]);
+
+    const bubble_scale = d3.scaleSqrt()
+         .range([2, 15])
+         .domain([0, d3.max(data, (d)=>+d.population)]);
+
+    // for making legend
+    const domain = [0, d3.max(data, (d)=>+d.population)]
+    const max = d3.max(domain);
+    const upperMid = max - max/4;
+    const mid = max/2;
+    const lowerMid = max/2 - max/4;
+
+    var legendDomain = [{"size":lowerMid},{"size":mid},{"size":upperMid},
+    {"size":max}]
+
+    const legend_circle_scale = d3.scaleSqrt()
+         .range([2, 15])
+         .domain([0, max]);
+
+    const legend_y_scale = d3.scaleLinear()
+         .range([height,height-120])
+         .domain([0, max]);
+
+    console.log(data)
+    // add the circles to the chart
+    chart.selectAll("circles")
+        .data(data).enter().append("circle")
+        .attr("class", "dots")
+        .attr("cx", (d)=> x_scale(d.perCollege))
+        .attr("cy",(d)=> y_scale(d.incomeHousehold))
+        .attr("r", (d)=> bubble_scale(d.population))
+        .style("stroke", "black")
+        .style("fill", "none")
+        .style("stroke-width", 1)
+        .style("fill",(d)=> color_scale(d.popPerSqMile));
+
+    // add the x-axis
+    chart.append("g")
+        .attr("transform", `translate(0, ${height})`)
+        .call(d3.axisBottom(x_scale));
+
+    // add the y-axis
+    chart.append("g")
+        .call(d3.axisLeft(y_scale));
+
+    // x-axis label
+    chart.append("text")
+            .attr("text-anchor", "middle")
+            .attr("transform", `translate(${-(2*margins.left/3)}, ${height/2})rotate(-90)`)
+            .text("Household Income");
+
+    // y-axis label
+    chart.append("text")
+            .attr("text-anchor", "middle")
+            .attr("transform", `translate(${width/2}, ${height+(4*margins.bottom/5)})`)
+            .text("College");
+
+    // add a legend for circle size
+    const legend = svg.selectAll('g')
+        .data(data)
+        .enter()
+        .append("g");
+
+        // first, add the rect
+        legend.append("rect")
+            .attr('x',width-30)
+            .attr('y', height-200)
+            .attr("height", 180)
+            .attr("width", 110)
+            .style("stroke", "black")
+           	.style("fill", "none")
+           	.style("stroke-width", 1);
+
+        // then the legend title labels
+        legend.append("text")
+            .attr("x",width)
+            .attr("y",height-180)
+            .attr("fill", "black")
+            .text("Legend:");
+
+        legend.append("text")
+            .attr("x",width-10)
+            .attr("y",height-160)
+            .attr("fill", "black")
+            .text("Size of Circle");
+
+        legend.append("text")
+            .attr("x",width-10)
+            .attr("y",height-140)
+            .attr("fill", "black")
+            .text("(population)");
+
+
+    // now, add the legend's circles
+    legendCircles = svg.selectAll("circles")
+        .data(legendDomain).enter()
+
+        legendCircles.append("circle")
+            .attr("cx", width-10)
+            .attr("cy",(d)=> (legend_y_scale(d["size"])))
+            .attr("r", (d)=>(legend_circle_scale(d["size"])))
+            .style("stroke", "black")
+           	.style("fill", "none")
+           	.style("stroke-width", 1);
+
+        legendCircles.append("text")
+            .attr("x", width+10)
+            .attr("y", (d)=> (legend_y_scale(d["size"])))
+            .attr("fill", "black")
+            .text((d)=>d["size"])
+
+});
+    </script>
+</body>
+</html>
